@@ -1,4 +1,4 @@
-# Project Name
+# Secret Santa List Generator
 
 ## Overview
 
