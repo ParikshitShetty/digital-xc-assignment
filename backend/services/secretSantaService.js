@@ -31,27 +31,45 @@ function isValidAssignment(employee, child, lastYearMap) {
 
 function generateAssignments(employees, lastYearMap) {
   const givers = [...employees];
-  const receivers = shuffle([...employees]);
+  const maxRetries = 1000;
 
   let retries = 0;
-  const maxRetries = 1000;
   while (retries < maxRetries) {
-    const valid = givers.every((giver, i) =>
-      isValidAssignment(giver, receivers[i], lastYearMap)
-    );
-    if (valid) break;
+    const receivers = shuffle([...employees]);
+    const assigned = new Set();
+    const assignments = [];
+
+    let valid = true;
+    for (let i = 0; i < givers.length; i++) {
+      const giver = givers[i];
+
+      const child = receivers.find((candidate) => {
+        return (
+          candidate.Employee_EmailID !== giver.Employee_EmailID && // not self
+          lastYearMap.get(giver.Employee_EmailID) !== candidate.Employee_EmailID && // not same as last year
+          !assigned.has(candidate.Employee_EmailID) // not already assigned
+        );
+      });
+
+      if (!child) {
+        valid = false;
+        break;
+      }
+
+      assignments.push({
+        Employee_Name: giver.Employee_Name,
+        Employee_EmailID: giver.Employee_EmailID,
+        Secret_Child_Name: child.Employee_Name,
+        Secret_Child_EmailID: child.Employee_EmailID,
+      });
+      assigned.add(child.Employee_EmailID);
+    }
+
+    if (valid) return assignments;
     retries++;
-    shuffle(receivers);
   }
 
-  if (retries === maxRetries) throw new Error("Could not generate valid assignments.");
-
-  return givers.map((giver, i) => ({
-    Employee_Name: giver.Employee_Name,
-    Employee_EmailID: giver.Employee_EmailID,
-    Secret_Child_Name: receivers[i].Employee_Name,
-    Secret_Child_EmailID: receivers[i].Employee_EmailID,
-  }));
+  throw new Error("Could not generate valid and unique assignments.");
 }
 
 async function processSecretSanta(currentPath, lastYearPath) {
